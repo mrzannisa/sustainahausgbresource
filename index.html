@@ -160,7 +160,7 @@ tr:hover .proj-edit-btn{opacity:1;}
 <body>
 
 <header>
-  <div class="logo">sustainahaus<span>greenbuilding</span> &mdash; Resource Management</div>
+  <div class="logo">sustainahaus<span>GB</span> &mdash; Resource Management</div>
   <div class="week-nav">
     <button onclick="shiftWeek(-1)">&#8592; Prev week</button>
     <span id="week-label"></span>
@@ -182,7 +182,7 @@ tr:hover .proj-edit-btn{opacity:1;}
       <div id="sidebar-team"></div>
     </div>
     <div class="sidebar-footer">
-      <p>Hover a project or member name to edit it &middot; Click any matrix cell to set hours &middot; Data resets on refresh</p>
+      <p>Hover a project or member name to edit it &middot; Click any matrix cell to set hours &middot; All changes save to Google Sheets</p>
     </div>
   </aside>
 
@@ -294,55 +294,61 @@ tr:hover .proj-edit-btn{opacity:1;}
 </div>
 
 <script>
+// ── CONFIG ────────────────────────────────────────────────────────────────
+const API_URL = 'https://script.google.com/macros/s/AKfycbyBjrZqRh5Y6uFKBXx2hfS6mVnmUTbm3KwfokucO7PyjLnoQrL1bcwa8iV8AbRoICZ7/exec';
+
 // ── DATA ──────────────────────────────────────────────────────────────────
-let TEAM=[
-  {id:'mgr', name:'Manager (You)',   role:'Project Manager',      cap:5, color:'#533AB7',bg:'#EEEDFE',init:'ME'},
-  {id:'cons',name:'Consultant',      role:'GB Consultant',         cap:7, color:'#0F6E56',bg:'#E1F5EE',init:'GC'},
-  {id:'sr',  name:'Senior Associate',role:'GB Senior Associate',   cap:7, color:'#185FA5',bg:'#E6F1FB',init:'SA'},
-  {id:'jr1', name:'Junior Assoc. 1', role:'GB Junior Associate',   cap:7, color:'#854F0B',bg:'#FAEEDA',init:'J1'},
-  {id:'jr2', name:'Junior Assoc. 2', role:'GB Junior Associate',   cap:7, color:'#854F0B',bg:'#FAEEDA',init:'J2'},
-  {id:'int', name:'Intern',          role:'Intern',                cap:5, color:'#993556',bg:'#FBEAF0',init:'IN'},
-];
+let TEAM=[];
+let PROJECTS=[];
+let alloc={};
+let pidCounter=1;
 
 const PHASES=['Schematic','Design Dev','Documentation','Construction','Submission','Review'];
 const PH_BG={Schematic:'#E1F5EE','Design Dev':'#E6F1FB',Documentation:'#EEEDFE',Construction:'#FAEEDA',Submission:'#FBEAF0',Review:'#FCEBEB'};
 const PH_TX={Schematic:'#0F6E56','Design Dev':'#185FA5',Documentation:'#533AB7',Construction:'#854F0B',Submission:'#993556',Review:'#A32D2D'};
 const PRI_CLS={High:'pri-high',Medium:'pri-medium',Low:'pri-low'};
 
-let pidCounter=18;
-let PROJECTS=[
-  {id:'p1', name:'Greenfield Tower A',      phase:'Schematic',    priority:'High'},
-  {id:'p2', name:'Eco Mall Phase 1',        phase:'Design Dev',   priority:'High'},
-  {id:'p3', name:'Riverside Residence',     phase:'Documentation',priority:'Medium'},
-  {id:'p4', name:'Harbor View Office',      phase:'Construction', priority:'High'},
-  {id:'p5', name:'Sunway Clinic',           phase:'Submission',   priority:'Medium'},
-  {id:'p6', name:'Palm Hills Estate',       phase:'Review',       priority:'Low'},
-  {id:'p7', name:'Central Park HQ',         phase:'Schematic',    priority:'High'},
-  {id:'p8', name:'Marina Bay Hotel',        phase:'Design Dev',   priority:'Medium'},
-  {id:'p9', name:'University Lab Block',    phase:'Documentation',priority:'Medium'},
-  {id:'p10',name:'Airport Terminal',        phase:'Construction', priority:'High'},
-  {id:'p11',name:'Waterfront Plaza',        phase:'Submission',   priority:'Low'},
-  {id:'p12',name:'Heritage Restoration',    phase:'Review',       priority:'Medium'},
-  {id:'p13',name:'Tech Campus East',        phase:'Schematic',    priority:'High'},
-  {id:'p14',name:'Suburban Mosque Complex', phase:'Design Dev',   priority:'Medium'},
-  {id:'p15',name:'Sports Facility',         phase:'Documentation',priority:'Low'},
-  {id:'p16',name:'Low-Carbon Warehouse',    phase:'Construction', priority:'Medium'},
-  {id:'p17',name:'Smart Grid HQ',           phase:'Submission',   priority:'High'},
-];
-
-let alloc={};
-function ga(pid,tid){return alloc[pid+'|'+tid]||0;}
+function ga(pid,tid){return parseFloat(alloc[pid+'|'+tid])||0;}
 function sa(pid,tid,h){alloc[pid+'|'+tid]=h;}
 
-// Seed allocations
-(()=>{
-  const seeds={mgr:1.5,cons:3.5,sr:3.5,jr1:3,jr2:3,int:2};
-  PROJECTS.forEach((p,pi)=>{
-    TEAM.forEach(t=>{
-      if(pi<14&&Math.random()<0.55) sa(p.id,t.id,parseFloat((seeds[t.id]*(0.4+Math.random()*1.2)).toFixed(1)));
-    });
-  });
-})();
+// ── GOOGLE SHEETS API ─────────────────────────────────────────────────────
+function showStatus(msg, isError=false){
+  let el=document.getElementById('save-status');
+  if(!el){el=document.createElement('div');el.id='save-status';
+    Object.assign(el.style,{position:'fixed',bottom:'16px',right:'16px',padding:'8px 16px',
+      borderRadius:'8px',fontSize:'13px',fontWeight:'500',zIndex:'999',transition:'opacity .3s'});
+    document.body.appendChild(el);}
+  el.textContent=msg;
+  el.style.background=isError?'#FCEBEB':'#EAF3DE';
+  el.style.color=isError?'#A32D2D':'#3B6D11';
+  el.style.opacity='1';
+  clearTimeout(el._t);
+  el._t=setTimeout(()=>el.style.opacity='0',2500);
+}
+
+async function loadFromSheets(){
+  document.getElementById('view-team').innerHTML='<div style="padding:40px;text-align:center;color:var(--text2);">Loading data from Google Sheets…</div>';
+  try{
+    const res=await fetch(API_URL+'?action=load');
+    const data=await res.json();
+    TEAM=data.team.map(t=>({...t,cap:parseFloat(t.cap)||7}));
+    PROJECTS=data.projects;
+    alloc={};
+    data.allocations.forEach(a=>sa(a.project_id,a.member_id,parseFloat(a.hours)||0));
+    pidCounter=PROJECTS.length+1;
+    render();
+  }catch(e){
+    document.getElementById('view-team').innerHTML='<div style="padding:40px;text-align:center;color:#A32D2D;">Failed to load data. Check your Apps Script URL and permissions.</div>';
+    console.error(e);
+  }
+}
+
+async function apiPost(body){
+  try{
+    await fetch(API_URL,{method:'POST',body:JSON.stringify(body)});
+    showStatus('Saved ✓');
+  }catch(e){showStatus('Save failed — check connection',true);}
+}
 
 // ── STATE ─────────────────────────────────────────────────────────────────
 let weekOffset=0;
@@ -385,7 +391,9 @@ function openModal(pid,tid){
 }
 function saveAlloc(){
   const h=parseFloat(document.getElementById('alloc-hrs').value)||0;
-  sa(modalAllocPid,modalAllocTid,h);closeModal('modal-alloc');render();
+  sa(modalAllocPid,modalAllocTid,h);
+  apiPost({action:'saveAllocation',project_id:modalAllocPid,member_id:modalAllocTid,hours:h});
+  closeModal('modal-alloc');render();
 }
 
 // Edit project modal
@@ -406,11 +414,13 @@ function saveProject(){
   p.name=newName;
   p.phase=document.getElementById('proj-phase-input').value;
   p.priority=document.getElementById('proj-priority-input').value;
+  apiPost({action:'updateProject',id:p.id,name:p.name,phase:p.phase,priority:p.priority});
   closeModal('modal-proj');render();
 }
 function deleteProject(){
   if(!confirm('Delete this project? All its allocations will be removed.'))return;
   PROJECTS=PROJECTS.filter(x=>x.id!==modalProjId);
+  apiPost({action:'deleteProject',id:modalProjId});
   closeModal('modal-proj');render();
 }
 
@@ -429,8 +439,8 @@ function addProject(){
   const priority=document.getElementById('newproj-priority').value;
   const id='p'+(pidCounter++);
   PROJECTS.push({id,name,phase,priority});
+  apiPost({action:'addProject',id,name,phase,priority});
   closeModal('modal-addproj');
-  // Switch to projects tab so user sees the new entry
   switchTab('projects',null);
   render();
 }
@@ -457,6 +467,7 @@ function saveMember(){
   const rawInit=document.getElementById('member-init-input').value.trim().toUpperCase();
   t.init=rawInit.slice(0,2)||t.init;
   t.cap=parseFloat(document.getElementById('member-cap-input').value)||t.cap;
+  apiPost({action:'updateMember',id:t.id,name:t.name,role:t.role,init:t.init,cap:t.cap});
   closeModal('modal-member');render();
 }
 
@@ -632,7 +643,7 @@ function render(){
   document.getElementById('week-label').textContent=(()=>{const d=getWeekDates(weekOffset);return fd(d[0])+' – '+fd(d[4]);})();
   renderMetrics();renderSidebar();renderTeam();renderProjects();renderMatrix();
 }
-render();
+loadFromSheets();
 </script>
 </body>
 </html>
