@@ -160,7 +160,7 @@ tr:hover .proj-edit-btn{opacity:1;}
 <body>
 
 <header>
-  <div class="logo">green<span>track</span> &mdash; Resource Management</div>
+  <div class="logo">sustainahaus<span>GB</span> &mdash; Resource Management</div>
   <div class="week-nav">
     <button onclick="shiftWeek(-1)">&#8592; Prev week</button>
     <span id="week-label"></span>
@@ -326,6 +326,12 @@ function showStatus(msg, isError=false){
   el._t=setTimeout(()=>el.style.opacity='0',2500);
 }
 
+// ── WEEK KEY ─────────────────────────────────────────────────────────────
+function weekKey(off){
+  const d=getWeekDates(off);
+  return d[0].toISOString().slice(0,10); // e.g. "2026-04-27"
+}
+
 async function loadFromSheets(){
   document.getElementById('view-team').innerHTML='<div style="padding:40px;text-align:center;color:var(--text2);">Loading data from Google Sheets…</div>';
   try{
@@ -335,7 +341,10 @@ async function loadFromSheets(){
     TEAM=data.team.map(t=>({...t, id:String(t.id), cap:parseFloat(t.cap)||7}));
     PROJECTS=data.projects.map(p=>({...p, id:String(p.id)}));
     alloc={};
-    data.allocations.forEach(a=>sa(String(a.project_id),String(a.member_id),parseFloat(a.hours)||0));
+    const wk=weekKey(weekOffset);
+    data.allocations
+      .filter(a=>String(a.week)===wk)
+      .forEach(a=>sa(String(a.project_id),String(a.member_id),parseFloat(a.hours)||0));
     pidCounter=PROJECTS.length+1;
     render();
   }catch(e){
@@ -368,7 +377,7 @@ function getWeekDates(off=0){
   return [0,1,2,3,4].map(i=>{const d=new Date(mon);d.setDate(mon.getDate()+i);return d;});
 }
 function fd(d){return d.toLocaleDateString('en-US',{weekday:'short',month:'short',day:'numeric'});}
-function shiftWeek(dir){weekOffset+=dir;render();}
+function shiftWeek(dir){weekOffset+=dir;alloc={};loadFromSheets();}
 
 // ── UTIL HELPERS ──────────────────────────────────────────────────────────
 function memberWH(tid){return PROJECTS.reduce((s,p)=>s+(ga(p.id,tid)||0),0);}
@@ -395,7 +404,7 @@ function openModal(pid,tid){
 function saveAlloc(){
   const h=parseFloat(document.getElementById('alloc-hrs').value)||0;
   sa(modalAllocPid,modalAllocTid,h);
-  apiCall({action:'saveAllocation',project_id:modalAllocPid,member_id:modalAllocTid,hours:h});
+  apiCall({action:'saveAllocation',project_id:modalAllocPid,member_id:modalAllocTid,hours:h,week:weekKey(weekOffset)});
   closeModal('modal-alloc');render();
 }
 
