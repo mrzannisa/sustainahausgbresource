@@ -343,9 +343,10 @@ async function loadFromSheets(){
   }
 }
 
-async function apiPost(body){
+async function apiCall(params){
   try{
-    await fetch(API_URL,{method:'POST',body:JSON.stringify(body)});
+    const qs=Object.entries(params).map(([k,v])=>encodeURIComponent(k)+'='+encodeURIComponent(v)).join('&');
+    await fetch(API_URL+'?'+qs);
     showStatus('Saved ✓');
   }catch(e){showStatus('Save failed — check connection',true);}
 }
@@ -392,7 +393,7 @@ function openModal(pid,tid){
 function saveAlloc(){
   const h=parseFloat(document.getElementById('alloc-hrs').value)||0;
   sa(modalAllocPid,modalAllocTid,h);
-  apiPost({action:'saveAllocation',project_id:modalAllocPid,member_id:modalAllocTid,hours:h});
+  apiCall({action:'saveAllocation',project_id:modalAllocPid,member_id:modalAllocTid,hours:h});
   closeModal('modal-alloc');render();
 }
 
@@ -414,13 +415,13 @@ function saveProject(){
   p.name=newName;
   p.phase=document.getElementById('proj-phase-input').value;
   p.priority=document.getElementById('proj-priority-input').value;
-  apiPost({action:'updateProject',id:p.id,name:p.name,phase:p.phase,priority:p.priority});
+  apiCall({action:'updateProject',id:p.id,name:p.name,phase:p.phase,priority:p.priority});
   closeModal('modal-proj');render();
 }
 function deleteProject(){
   if(!confirm('Delete this project? All its allocations will be removed.'))return;
   PROJECTS=PROJECTS.filter(x=>x.id!==modalProjId);
-  apiPost({action:'deleteProject',id:modalProjId});
+  apiCall({action:'deleteProject',id:modalProjId});
   closeModal('modal-proj');render();
 }
 
@@ -439,7 +440,7 @@ function addProject(){
   const priority=document.getElementById('newproj-priority').value;
   const id='p'+(pidCounter++);
   PROJECTS.push({id,name,phase,priority});
-  apiPost({action:'addProject',id,name,phase,priority});
+  apiCall({action:'addProject',id,name,phase,priority});
   closeModal('modal-addproj');
   switchTab('projects',null);
   render();
@@ -467,7 +468,7 @@ function saveMember(){
   const rawInit=document.getElementById('member-init-input').value.trim().toUpperCase();
   t.init=rawInit.slice(0,2)||t.init;
   t.cap=parseFloat(document.getElementById('member-cap-input').value)||t.cap;
-  apiPost({action:'updateMember',id:t.id,name:t.name,role:t.role,init:t.init,cap:t.cap});
+  apiCall({action:'updateMember',id:t.id,name:t.name,role:t.role,init:t.init,cap:t.cap});
   closeModal('modal-member');render();
 }
 
