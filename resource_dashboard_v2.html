@@ -1,0 +1,638 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Resource Management Dashboard</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;}
+:root{
+  --bg:#f9f8f5;--surface:#ffffff;--surface2:#f2f1ee;--border:#e2e0da;--border2:#ccc9c0;
+  --text:#1a1a1a;--text2:#6b6860;--text3:#9c9a94;
+  --green:#1D9E75;--green-bg:#EAF3DE;--green-text:#3B6D11;
+  --amber:#EF9F27;--amber-bg:#FAEEDA;--amber-text:#854F0B;
+  --red:#E24B4A;--red-bg:#FCEBEB;--red-text:#A32D2D;
+  --blue:#378ADD;--blue-bg:#E6F1FB;--blue-text:#185FA5;
+  --purple:#533AB7;--purple-bg:#EEEDFE;
+  --radius:10px;--radius-sm:6px;
+  font-family:'Segoe UI',system-ui,sans-serif;
+}
+body{background:var(--bg);color:var(--text);height:100vh;display:flex;flex-direction:column;overflow:hidden;}
+
+/* HEADER */
+header{background:var(--surface);border-bottom:1px solid var(--border);padding:0 24px;display:flex;align-items:center;justify-content:space-between;height:56px;flex-shrink:0;gap:12px;}
+.logo{font-size:16px;font-weight:600;letter-spacing:-0.3px;white-space:nowrap;}
+.logo span{color:var(--green);font-weight:700;}
+.week-nav{display:flex;align-items:center;gap:10px;}
+.week-nav button{background:none;border:1px solid var(--border2);border-radius:var(--radius-sm);padding:5px 14px;font-size:13px;cursor:pointer;color:var(--text);transition:background .15s;}
+.week-nav button:hover{background:var(--surface2);}
+#week-label{font-size:13px;color:var(--text2);min-width:200px;text-align:center;font-weight:500;}
+
+/* LAYOUT */
+.layout{display:flex;flex:1;overflow:hidden;}
+
+/* SIDEBAR */
+aside{width:224px;background:var(--surface);border-right:1px solid var(--border);display:flex;flex-direction:column;flex-shrink:0;overflow-y:auto;}
+.sidebar-section{padding:16px 14px 8px;}
+.sidebar-label{font-size:10px;font-weight:600;letter-spacing:.08em;color:var(--text3);text-transform:uppercase;margin-bottom:8px;}
+.nav-item{display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:var(--radius-sm);cursor:pointer;font-size:13px;color:var(--text2);transition:all .15s;margin-bottom:2px;}
+.nav-item:hover{background:var(--surface2);color:var(--text);}
+.nav-item.active{background:var(--blue-bg);color:var(--blue-text);font-weight:500;}
+.nav-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;}
+.sidebar-footer{margin-top:auto;padding:12px 14px 16px;}
+.sidebar-footer p{font-size:11px;color:var(--text3);line-height:1.5;}
+
+/* MAIN */
+main{flex:1;overflow:auto;padding:24px;}
+
+/* METRICS */
+.metrics{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:24px;}
+.metric{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:16px 18px;}
+.metric-label{font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px;}
+.metric-val{font-size:26px;font-weight:600;color:var(--text);line-height:1;}
+.metric-sub{font-size:12px;color:var(--text2);margin-top:4px;}
+
+/* TAB BAR */
+.tab-bar{display:flex;align-items:center;gap:0;border-bottom:1px solid var(--border);margin-bottom:20px;}
+.tab-bar-left{display:flex;flex:1;}
+.tab{padding:9px 20px;font-size:13px;cursor:pointer;color:var(--text2);border-bottom:2px solid transparent;background:none;border-top:none;border-left:none;border-right:none;transition:all .15s;}
+.tab:hover{color:var(--text);}
+.tab.active{color:var(--text);border-bottom-color:var(--text);font-weight:500;}
+.view{display:none;}
+.view.active{display:block;}
+
+/* ACTION BUTTONS in tab bar */
+.tab-actions{display:flex;gap:8px;padding-bottom:4px;}
+.action-btn{display:flex;align-items:center;gap:6px;padding:5px 12px;border-radius:var(--radius-sm);font-size:12px;cursor:pointer;border:1px solid var(--border2);background:none;color:var(--text2);transition:all .15s;white-space:nowrap;}
+.action-btn:hover{background:var(--surface2);color:var(--text);}
+.action-btn.primary{background:var(--text);color:var(--surface);border-color:var(--text);}
+.action-btn.primary:hover{opacity:.85;}
+
+/* TEAM GRID */
+.team-cards{display:flex;flex-direction:column;gap:10px;}
+.member-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:16px 20px;}
+.member-top{display:flex;align-items:center;gap:12px;margin-bottom:12px;}
+.avatar{width:38px;height:38px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:600;flex-shrink:0;}
+.member-meta{flex:1;}
+.member-name{font-size:14px;font-weight:600;}
+.member-role{font-size:12px;color:var(--text2);margin-top:1px;}
+.util-pill{font-size:11px;font-weight:600;padding:3px 10px;border-radius:20px;white-space:nowrap;}
+.member-body{display:grid;grid-template-columns:200px 1fr;gap:16px;align-items:start;}
+.week-bar-wrap{display:flex;flex-direction:column;gap:6px;}
+.bar-row{display:flex;align-items:center;gap:8px;}
+.bar-label-text{font-size:12px;color:var(--text2);width:90px;flex-shrink:0;}
+.bar-track{flex:1;height:8px;background:var(--surface2);border-radius:4px;overflow:hidden;}
+.bar-fill{height:100%;border-radius:4px;transition:width .3s;}
+.bar-val{font-size:12px;color:var(--text2);width:55px;text-align:right;flex-shrink:0;}
+.day-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:6px;}
+.day-col{text-align:center;background:var(--surface2);border-radius:var(--radius-sm);padding:8px 6px;}
+.day-name{font-size:10px;color:var(--text3);margin-bottom:2px;font-weight:500;}
+.day-num{font-size:11px;color:var(--text2);margin-bottom:6px;}
+.day-bar-track{height:6px;background:var(--border);border-radius:3px;overflow:hidden;margin:4px 0;}
+.day-bar-fill{height:100%;border-radius:3px;}
+.day-hrs{font-size:12px;font-weight:600;}
+.proj-tags{display:flex;flex-wrap:wrap;gap:5px;margin-top:10px;}
+.proj-tag{font-size:10px;padding:2px 8px;border-radius:10px;}
+.edit-name-btn{opacity:0;font-size:10px;padding:2px 6px;border-radius:4px;border:1px solid var(--border2);background:none;cursor:pointer;color:var(--text2);margin-left:6px;transition:opacity .15s;}
+.member-card:hover .edit-name-btn{opacity:1;}
+
+/* PROJECTS TABLE */
+.table-wrap{overflow-x:auto;}
+table{width:100%;border-collapse:collapse;font-size:13px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;}
+thead{background:var(--surface2);}
+th{padding:10px 12px;text-align:left;font-weight:600;font-size:11px;color:var(--text2);text-transform:uppercase;letter-spacing:.05em;border-bottom:1px solid var(--border);white-space:nowrap;}
+td{padding:10px 12px;border-bottom:1px solid var(--border);color:var(--text);}
+tr:last-child td{border-bottom:none;}
+tr:hover td{background:var(--surface2);}
+.phase-badge{font-size:11px;padding:2px 9px;border-radius:10px;font-weight:500;}
+.pri-high{color:var(--red-text);font-weight:600;}
+.pri-medium{color:var(--amber-text);font-weight:600;}
+.pri-low{color:var(--text2);}
+.alloc-num{text-align:center;font-weight:600;}
+.alloc-empty{text-align:center;color:var(--text3);}
+.total-cell{text-align:center;font-weight:700;}
+.proj-edit-btn{opacity:0;font-size:10px;padding:1px 6px;border-radius:4px;border:1px solid var(--border2);background:none;cursor:pointer;color:var(--text2);margin-left:6px;vertical-align:middle;}
+tr:hover .proj-edit-btn{opacity:1;}
+
+/* MATRIX */
+.matrix-scroll{overflow:auto;}
+.matrix-table{border-collapse:collapse;font-size:12px;}
+.matrix-table th,.matrix-table td{padding:6px 10px;border:1px solid var(--border);white-space:nowrap;}
+.matrix-table thead th{background:var(--surface2);font-weight:600;text-align:center;font-size:11px;color:var(--text2);}
+.matrix-table .proj-col{text-align:left;font-weight:500;background:var(--surface2);min-width:180px;max-width:220px;overflow:hidden;text-overflow:ellipsis;}
+.alloc-cell{text-align:center;cursor:pointer;transition:background .1s;min-width:70px;}
+.alloc-cell:hover{background:var(--blue-bg)!important;}
+.alloc-filled{background:#EAF3DE;color:#3B6D11;font-weight:600;}
+.alloc-over{background:#FCEBEB;color:#A32D2D;font-weight:600;}
+.alloc-empty-cell{color:var(--text3);}
+.row-total{font-weight:700;background:var(--surface2);text-align:center;}
+
+/* MODAL — shared base */
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.3);display:none;align-items:center;justify-content:center;z-index:100;}
+.modal-overlay.open{display:flex;}
+.modal{background:var(--surface);border:1px solid var(--border2);border-radius:var(--radius);padding:22px;min-width:280px;box-shadow:0 8px 32px rgba(0,0,0,.12);}
+.modal h3{font-size:14px;font-weight:600;margin-bottom:16px;color:var(--text);}
+.modal-row{display:flex;align-items:center;gap:10px;margin-bottom:12px;}
+.modal-row label{font-size:13px;color:var(--text2);flex:1;}
+.modal-row input,.modal-row select{padding:6px 10px;border:1px solid var(--border2);border-radius:var(--radius-sm);font-size:13px;}
+.modal-row input[type=number]{width:80px;text-align:center;}
+.modal-row input[type=text],.modal-row select{flex:1;}
+.modal-hint{font-size:12px;color:var(--text3);margin-top:-6px;margin-bottom:10px;}
+.modal-actions{display:flex;gap:8px;margin-top:16px;}
+.btn{padding:7px 16px;border-radius:var(--radius-sm);font-size:13px;cursor:pointer;border:1px solid var(--border2);background:none;color:var(--text);transition:all .15s;}
+.btn:hover{background:var(--surface2);}
+.btn-primary{background:var(--text);color:var(--surface);border-color:var(--text);}
+.btn-primary:hover{opacity:.85;}
+.btn-danger{background:var(--red-bg);color:var(--red-text);border-color:#f7c1c1;}
+.btn-danger:hover{background:#f7c1c1;}
+
+/* UTIL colors */
+.ok{background:var(--green-bg);color:var(--green-text);}
+.warn{background:var(--amber-bg);color:var(--amber-text);}
+.over{background:var(--red-bg);color:var(--red-text);}
+.low{background:var(--blue-bg);color:var(--blue-text);}
+
+/* Inline editable text */
+.editable-name{cursor:pointer;border-bottom:1px dashed transparent;transition:border-color .15s;}
+.editable-name:hover{border-bottom-color:var(--border2);}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">green<span>track</span> &mdash; Resource Management</div>
+  <div class="week-nav">
+    <button onclick="shiftWeek(-1)">&#8592; Prev week</button>
+    <span id="week-label"></span>
+    <button onclick="shiftWeek(1)">Next week &#8594;</button>
+  </div>
+  <div id="header-util" style="font-size:13px;color:var(--text2);"></div>
+</header>
+
+<div class="layout">
+  <aside>
+    <div class="sidebar-section">
+      <div class="sidebar-label">Views</div>
+      <div class="nav-item active" onclick="switchTab('team',this)"><div class="nav-dot" style="background:var(--green)"></div>Team workload</div>
+      <div class="nav-item" onclick="switchTab('projects',this)"><div class="nav-dot" style="background:var(--blue)"></div>Projects</div>
+      <div class="nav-item" onclick="switchTab('matrix',this)"><div class="nav-dot" style="background:var(--amber)"></div>Allocation matrix</div>
+    </div>
+    <div class="sidebar-section">
+      <div class="sidebar-label">Team</div>
+      <div id="sidebar-team"></div>
+    </div>
+    <div class="sidebar-footer">
+      <p>Hover a project or member name to edit it &middot; Click any matrix cell to set hours &middot; Data resets on refresh</p>
+    </div>
+  </aside>
+
+  <main>
+    <div class="metrics" id="metrics"></div>
+
+    <div class="tab-bar">
+      <div class="tab-bar-left">
+        <button class="tab active" id="tab-team" onclick="switchTab('team',null)">Team workload</button>
+        <button class="tab" id="tab-projects" onclick="switchTab('projects',null)">Projects</button>
+        <button class="tab" id="tab-matrix" onclick="switchTab('matrix',null)">Allocation matrix</button>
+      </div>
+      <div class="tab-actions">
+        <button class="action-btn primary" onclick="openAddProject()">+ Add project</button>
+        <button class="action-btn" onclick="openEditTeam()">&#9998; Edit team</button>
+      </div>
+    </div>
+
+    <div id="view-team" class="view active"></div>
+    <div id="view-projects" class="view"></div>
+    <div id="view-matrix" class="view"></div>
+  </main>
+</div>
+
+<!-- ALLOCATION EDIT MODAL -->
+<div class="modal-overlay" id="modal-alloc" onclick="if(event.target===this)closeModal('modal-alloc')">
+  <div class="modal">
+    <h3 id="alloc-title">Edit allocation</h3>
+    <div class="modal-row"><label>Hours per week</label><input type="number" id="alloc-hrs" min="0" max="40" step="0.5"></div>
+    <div class="modal-hint">Member capacity: <span id="alloc-cap"></span>h/week</div>
+    <div class="modal-actions">
+      <button class="btn btn-primary" onclick="saveAlloc()">Save</button>
+      <button class="btn" onclick="closeModal('modal-alloc')">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<!-- EDIT PROJECT NAME MODAL -->
+<div class="modal-overlay" id="modal-proj" onclick="if(event.target===this)closeModal('modal-proj')">
+  <div class="modal">
+    <h3>Edit project</h3>
+    <div class="modal-row"><label>Project name</label><input type="text" id="proj-name-input" placeholder="Project name"></div>
+    <div class="modal-row"><label>Phase</label>
+      <select id="proj-phase-input">
+        <option>Schematic</option><option>Design Dev</option><option>Documentation</option>
+        <option>Construction</option><option>Submission</option><option>Review</option>
+      </select>
+    </div>
+    <div class="modal-row"><label>Priority</label>
+      <select id="proj-priority-input">
+        <option>High</option><option>Medium</option><option>Low</option>
+      </select>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-primary" onclick="saveProject()">Save</button>
+      <button class="btn btn-danger" onclick="deleteProject()">Delete</button>
+      <button class="btn" onclick="closeModal('modal-proj')">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<!-- ADD PROJECT MODAL -->
+<div class="modal-overlay" id="modal-addproj" onclick="if(event.target===this)closeModal('modal-addproj')">
+  <div class="modal">
+    <h3>Add new project</h3>
+    <div class="modal-row"><label>Project name</label><input type="text" id="newproj-name" placeholder="e.g. Green Office Tower B"></div>
+    <div class="modal-row"><label>Phase</label>
+      <select id="newproj-phase">
+        <option>Schematic</option><option>Design Dev</option><option>Documentation</option>
+        <option>Construction</option><option>Submission</option><option>Review</option>
+      </select>
+    </div>
+    <div class="modal-row"><label>Priority</label>
+      <select id="newproj-priority">
+        <option>High</option><option>Medium</option><option>Low</option>
+      </select>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-primary" onclick="addProject()">Add project</button>
+      <button class="btn" onclick="closeModal('modal-addproj')">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<!-- EDIT MEMBER NAME MODAL -->
+<div class="modal-overlay" id="modal-member" onclick="if(event.target===this)closeModal('modal-member')">
+  <div class="modal">
+    <h3>Edit team member</h3>
+    <div class="modal-row"><label>Full name</label><input type="text" id="member-name-input" placeholder="Name"></div>
+    <div class="modal-row"><label>Role</label><input type="text" id="member-role-input" placeholder="Role title"></div>
+    <div class="modal-row"><label>Initials (2 chars)</label><input type="text" id="member-init-input" placeholder="AB" maxlength="2" style="width:60px;flex:unset;text-align:center;text-transform:uppercase;"></div>
+    <div class="modal-row"><label>Daily capacity (h)</label><input type="number" id="member-cap-input" min="1" max="12" step="0.5"></div>
+    <div class="modal-actions">
+      <button class="btn btn-primary" onclick="saveMember()">Save</button>
+      <button class="btn" onclick="closeModal('modal-member')">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<!-- EDIT TEAM MODAL (list all members) -->
+<div class="modal-overlay" id="modal-team" onclick="if(event.target===this)closeModal('modal-team')">
+  <div class="modal" style="min-width:340px;">
+    <h3>Team members — click to edit</h3>
+    <div id="team-list" style="display:flex;flex-direction:column;gap:8px;margin-bottom:16px;"></div>
+    <div class="modal-actions">
+      <button class="btn" onclick="closeModal('modal-team')">Close</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ── DATA ──────────────────────────────────────────────────────────────────
+let TEAM=[
+  {id:'mgr', name:'Manager (You)',   role:'Project Manager',      cap:5, color:'#533AB7',bg:'#EEEDFE',init:'ME'},
+  {id:'cons',name:'Consultant',      role:'GB Consultant',         cap:7, color:'#0F6E56',bg:'#E1F5EE',init:'GC'},
+  {id:'sr',  name:'Senior Associate',role:'GB Senior Associate',   cap:7, color:'#185FA5',bg:'#E6F1FB',init:'SA'},
+  {id:'jr1', name:'Junior Assoc. 1', role:'GB Junior Associate',   cap:7, color:'#854F0B',bg:'#FAEEDA',init:'J1'},
+  {id:'jr2', name:'Junior Assoc. 2', role:'GB Junior Associate',   cap:7, color:'#854F0B',bg:'#FAEEDA',init:'J2'},
+  {id:'int', name:'Intern',          role:'Intern',                cap:5, color:'#993556',bg:'#FBEAF0',init:'IN'},
+];
+
+const PHASES=['Schematic','Design Dev','Documentation','Construction','Submission','Review'];
+const PH_BG={Schematic:'#E1F5EE','Design Dev':'#E6F1FB',Documentation:'#EEEDFE',Construction:'#FAEEDA',Submission:'#FBEAF0',Review:'#FCEBEB'};
+const PH_TX={Schematic:'#0F6E56','Design Dev':'#185FA5',Documentation:'#533AB7',Construction:'#854F0B',Submission:'#993556',Review:'#A32D2D'};
+const PRI_CLS={High:'pri-high',Medium:'pri-medium',Low:'pri-low'};
+
+let pidCounter=18;
+let PROJECTS=[
+  {id:'p1', name:'Greenfield Tower A',      phase:'Schematic',    priority:'High'},
+  {id:'p2', name:'Eco Mall Phase 1',        phase:'Design Dev',   priority:'High'},
+  {id:'p3', name:'Riverside Residence',     phase:'Documentation',priority:'Medium'},
+  {id:'p4', name:'Harbor View Office',      phase:'Construction', priority:'High'},
+  {id:'p5', name:'Sunway Clinic',           phase:'Submission',   priority:'Medium'},
+  {id:'p6', name:'Palm Hills Estate',       phase:'Review',       priority:'Low'},
+  {id:'p7', name:'Central Park HQ',         phase:'Schematic',    priority:'High'},
+  {id:'p8', name:'Marina Bay Hotel',        phase:'Design Dev',   priority:'Medium'},
+  {id:'p9', name:'University Lab Block',    phase:'Documentation',priority:'Medium'},
+  {id:'p10',name:'Airport Terminal',        phase:'Construction', priority:'High'},
+  {id:'p11',name:'Waterfront Plaza',        phase:'Submission',   priority:'Low'},
+  {id:'p12',name:'Heritage Restoration',    phase:'Review',       priority:'Medium'},
+  {id:'p13',name:'Tech Campus East',        phase:'Schematic',    priority:'High'},
+  {id:'p14',name:'Suburban Mosque Complex', phase:'Design Dev',   priority:'Medium'},
+  {id:'p15',name:'Sports Facility',         phase:'Documentation',priority:'Low'},
+  {id:'p16',name:'Low-Carbon Warehouse',    phase:'Construction', priority:'Medium'},
+  {id:'p17',name:'Smart Grid HQ',           phase:'Submission',   priority:'High'},
+];
+
+let alloc={};
+function ga(pid,tid){return alloc[pid+'|'+tid]||0;}
+function sa(pid,tid,h){alloc[pid+'|'+tid]=h;}
+
+// Seed allocations
+(()=>{
+  const seeds={mgr:1.5,cons:3.5,sr:3.5,jr1:3,jr2:3,int:2};
+  PROJECTS.forEach((p,pi)=>{
+    TEAM.forEach(t=>{
+      if(pi<14&&Math.random()<0.55) sa(p.id,t.id,parseFloat((seeds[t.id]*(0.4+Math.random()*1.2)).toFixed(1)));
+    });
+  });
+})();
+
+// ── STATE ─────────────────────────────────────────────────────────────────
+let weekOffset=0;
+let modalAllocPid=null,modalAllocTid=null;
+let modalProjId=null;
+let modalMemberId=null;
+
+// ── DATE HELPERS — base date = 1 May 2026 (Thursday) ─────────────────────
+function getWeekDates(off=0){
+  // Start from week containing 1 May 2026
+  const base=new Date(2026,4,1); // month is 0-indexed → May = 4
+  const dow=base.getDay()||7;    // 1=Mon … 7=Sun
+  const mon=new Date(base);
+  mon.setDate(base.getDate()-(dow-1)+(off*7));
+  return [0,1,2,3,4].map(i=>{const d=new Date(mon);d.setDate(mon.getDate()+i);return d;});
+}
+function fd(d){return d.toLocaleDateString('en-US',{weekday:'short',month:'short',day:'numeric'});}
+function shiftWeek(dir){weekOffset+=dir;render();}
+
+// ── UTIL HELPERS ──────────────────────────────────────────────────────────
+function memberWH(tid){return PROJECTS.reduce((s,p)=>s+(ga(p.id,tid)||0),0);}
+function capW(tid){return(TEAM.find(t=>t.id===tid)?.cap||7)*5;}
+function pct(tid){const c=capW(tid);return c?Math.round(memberWH(tid)/c*100):0;}
+function utilCls(p){return p>100?'over':p>=85?'warn':p<40?'low':'ok';}
+function utilLabel(p){return p>100?p+'% overloaded':p>=85?p+'% high load':p<40?p+'% under-utilized':p+'% healthy';}
+function barColor(p){return p>100?'#E24B4A':p>=85?'#EF9F27':p<40?'#378ADD':'#1D9E75';}
+
+// ── MODALS ────────────────────────────────────────────────────────────────
+function closeModal(id){document.getElementById(id).classList.remove('open');}
+
+// Allocation modal
+function openModal(pid,tid){
+  modalAllocPid=pid;modalAllocTid=tid;
+  const p=PROJECTS.find(x=>x.id===pid);const t=TEAM.find(x=>x.id===tid);
+  document.getElementById('alloc-title').textContent=t.name+' on '+p.name;
+  document.getElementById('alloc-hrs').value=ga(pid,tid)||0;
+  document.getElementById('alloc-cap').textContent=capW(tid);
+  document.getElementById('modal-alloc').classList.add('open');
+  setTimeout(()=>document.getElementById('alloc-hrs').focus(),50);
+}
+function saveAlloc(){
+  const h=parseFloat(document.getElementById('alloc-hrs').value)||0;
+  sa(modalAllocPid,modalAllocTid,h);closeModal('modal-alloc');render();
+}
+
+// Edit project modal
+function openEditProject(pid){
+  modalProjId=pid;
+  const p=PROJECTS.find(x=>x.id===pid);
+  document.getElementById('proj-name-input').value=p.name;
+  document.getElementById('proj-phase-input').value=p.phase;
+  document.getElementById('proj-priority-input').value=p.priority;
+  document.getElementById('modal-proj').classList.add('open');
+  setTimeout(()=>document.getElementById('proj-name-input').focus(),50);
+}
+function saveProject(){
+  const p=PROJECTS.find(x=>x.id===modalProjId);
+  if(!p)return;
+  const newName=document.getElementById('proj-name-input').value.trim();
+  if(!newName)return;
+  p.name=newName;
+  p.phase=document.getElementById('proj-phase-input').value;
+  p.priority=document.getElementById('proj-priority-input').value;
+  closeModal('modal-proj');render();
+}
+function deleteProject(){
+  if(!confirm('Delete this project? All its allocations will be removed.'))return;
+  PROJECTS=PROJECTS.filter(x=>x.id!==modalProjId);
+  closeModal('modal-proj');render();
+}
+
+// Add project modal
+function openAddProject(){
+  document.getElementById('newproj-name').value='';
+  document.getElementById('newproj-phase').value='Schematic';
+  document.getElementById('newproj-priority').value='Medium';
+  document.getElementById('modal-addproj').classList.add('open');
+  setTimeout(()=>document.getElementById('newproj-name').focus(),50);
+}
+function addProject(){
+  const name=document.getElementById('newproj-name').value.trim();
+  if(!name){document.getElementById('newproj-name').focus();return;}
+  const phase=document.getElementById('newproj-phase').value;
+  const priority=document.getElementById('newproj-priority').value;
+  const id='p'+(pidCounter++);
+  PROJECTS.push({id,name,phase,priority});
+  closeModal('modal-addproj');
+  // Switch to projects tab so user sees the new entry
+  switchTab('projects',null);
+  render();
+}
+
+// Edit member modal
+function openEditMember(tid){
+  modalMemberId=tid;
+  const t=TEAM.find(x=>x.id===tid);
+  document.getElementById('member-name-input').value=t.name;
+  document.getElementById('member-role-input').value=t.role;
+  document.getElementById('member-init-input').value=t.init;
+  document.getElementById('member-cap-input').value=t.cap;
+  closeModal('modal-team');
+  document.getElementById('modal-member').classList.add('open');
+  setTimeout(()=>document.getElementById('member-name-input').focus(),50);
+}
+function saveMember(){
+  const t=TEAM.find(x=>x.id===modalMemberId);
+  if(!t)return;
+  const newName=document.getElementById('member-name-input').value.trim();
+  if(!newName)return;
+  t.name=newName;
+  t.role=document.getElementById('member-role-input').value.trim()||t.role;
+  const rawInit=document.getElementById('member-init-input').value.trim().toUpperCase();
+  t.init=rawInit.slice(0,2)||t.init;
+  t.cap=parseFloat(document.getElementById('member-cap-input').value)||t.cap;
+  closeModal('modal-member');render();
+}
+
+// Team list modal
+function openEditTeam(){
+  const list=document.getElementById('team-list');
+  list.innerHTML=TEAM.map(t=>`
+    <div onclick="openEditMember('${t.id}')" style="display:flex;align-items:center;gap:10px;padding:10px 12px;border:1px solid var(--border);border-radius:var(--radius-sm);cursor:pointer;transition:background .1s;" onmouseover="this.style.background='var(--surface2)'" onmouseout="this.style.background=''">
+      <div style="width:32px;height:32px;border-radius:50%;background:${t.bg};color:${t.color};display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;flex-shrink:0;">${t.init}</div>
+      <div style="flex:1;">
+        <div style="font-size:13px;font-weight:600;">${t.name}</div>
+        <div style="font-size:11px;color:var(--text2);">${t.role} &middot; ${t.cap}h/day</div>
+      </div>
+      <span style="font-size:11px;color:var(--text3);">edit &#8250;</span>
+    </div>`).join('');
+  document.getElementById('modal-team').classList.add('open');
+}
+
+// ── RENDER ────────────────────────────────────────────────────────────────
+function renderMetrics(){
+  const totalCap=TEAM.reduce((s,t)=>s+capW(t.id),0);
+  const totalUsed=TEAM.reduce((s,t)=>s+memberWH(t.id),0);
+  const over=TEAM.filter(t=>pct(t.id)>100).length;
+  const avail=Math.max(0,totalCap-totalUsed);
+  document.getElementById('metrics').innerHTML=`
+    <div class="metric"><div class="metric-label">Team capacity / week</div><div class="metric-val">${totalCap}h</div><div class="metric-sub">${TEAM.length} people</div></div>
+    <div class="metric"><div class="metric-label">Hours allocated</div><div class="metric-val">${Math.round(totalUsed)}h</div><div class="metric-sub">${Math.round(totalUsed/totalCap*100)}% utilized</div></div>
+    <div class="metric"><div class="metric-label">Hours available</div><div class="metric-val">${Math.round(avail)}h</div><div class="metric-sub">remaining this week</div></div>
+    <div class="metric"><div class="metric-label">Active projects</div><div class="metric-val">${PROJECTS.length}</div><div class="metric-sub">${over>0?over+' member(s) overloaded':'All loads healthy'}</div></div>`;
+  document.getElementById('header-util').textContent=`Wk of ${fd(getWeekDates(weekOffset)[0]).split(',')[0]}`;
+}
+
+function renderSidebar(){
+  document.getElementById('sidebar-team').innerHTML=TEAM.map(t=>{
+    const p=pct(t.id);
+    return `<div style="display:flex;align-items:center;gap:8px;padding:6px 10px;border-radius:6px;margin-bottom:2px;cursor:pointer;" onclick="openEditMember('${t.id}')" title="Click to edit ${t.name}" onmouseover="this.style.background='var(--surface2)'" onmouseout="this.style.background=''">
+      <div style="width:28px;height:28px;background:${t.bg};color:${t.color};border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;flex-shrink:0;">${t.init}</div>
+      <div style="flex:1;min-width:0;">
+        <div style="font-size:12px;font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${t.name}</div>
+        <div style="font-size:10px;color:var(--text3);">${Math.round(memberWH(t.id))}/${capW(t.id)}h</div>
+      </div>
+      <span style="font-size:10px;font-weight:600;padding:2px 6px;border-radius:10px;" class="${utilCls(p)}">${p}%</span>
+    </div>`;
+  }).join('');
+}
+
+function renderTeam(){
+  const dates=getWeekDates(weekOffset);
+  document.getElementById('view-team').innerHTML=`<div class="team-cards">${TEAM.map(t=>{
+    const wh=memberWH(t.id);const cap=t.cap;const capw=cap*5;const p=pct(t.id);
+    const dayH=(wh/5);
+    const projs=PROJECTS.filter(pr=>ga(pr.id,t.id)>0);
+    return `<div class="member-card">
+      <div class="member-top">
+        <div class="avatar" style="background:${t.bg};color:${t.color}">${t.init}</div>
+        <div class="member-meta">
+          <div class="member-name">
+            <span class="editable-name" onclick="openEditMember('${t.id}')" title="Click to edit name">${t.name}</span>
+          </div>
+          <div class="member-role">${t.role} &middot; ${cap}h/day capacity &middot; on ${projs.length} project${projs.length!==1?'s':''}</div>
+        </div>
+        <span class="util-pill ${utilCls(p)}">${utilLabel(p)}</span>
+      </div>
+      <div class="member-body">
+        <div class="week-bar-wrap">
+          <div class="bar-row">
+            <span class="bar-label-text">Weekly total</span>
+            <div class="bar-track"><div class="bar-fill" style="width:${Math.min(p,100)}%;background:${barColor(p)}"></div></div>
+            <span class="bar-val">${Math.round(wh)}/${capw}h</span>
+          </div>
+          <div class="bar-row">
+            <span class="bar-label-text">Daily avg</span>
+            <div class="bar-track"><div class="bar-fill" style="width:${Math.min(Math.round(dayH/cap*100),100)}%;background:${barColor(p)}"></div></div>
+            <span class="bar-val">${dayH.toFixed(1)}/${cap}h</span>
+          </div>
+          ${projs.length>0?`<div class="proj-tags">${projs.slice(0,4).map(pr=>`<span class="proj-tag" style="background:${PH_BG[pr.phase]};color:${PH_TX[pr.phase]}">${pr.name.length>18?pr.name.slice(0,16)+'…':pr.name} (${ga(pr.id,t.id)}h)</span>`).join('')}${projs.length>4?`<span class="proj-tag" style="background:var(--surface2);color:var(--text2)">+${projs.length-4} more</span>`:''}</div>`:''}
+        </div>
+        <div class="day-grid">${dates.map(d=>{
+          const dh=dayH;const dp=Math.min(Math.round(dh/cap*100),100);
+          return `<div class="day-col">
+            <div class="day-name">${d.toLocaleDateString('en-US',{weekday:'short'})}</div>
+            <div class="day-num">${d.getDate()}</div>
+            <div class="day-bar-track"><div class="day-bar-fill" style="width:${dp}%;background:${barColor(p)}"></div></div>
+            <div class="day-hrs" style="color:${barColor(p)}">${dh.toFixed(1)}h</div>
+          </div>`;
+        }).join('')}</div>
+      </div>
+    </div>`;
+  }).join('')}</div>`;
+}
+
+function renderProjects(){
+  document.getElementById('view-projects').innerHTML=`<div class="table-wrap"><table>
+    <thead><tr>
+      <th style="min-width:180px;">Project</th><th>Phase</th><th>Priority</th>
+      ${TEAM.map(t=>`<th style="text-align:center;">${t.init}</th>`).join('')}
+      <th style="text-align:center;">Total/wk</th>
+    </tr></thead>
+    <tbody>${PROJECTS.map(p=>{
+      const total=TEAM.reduce((s,t)=>s+(ga(p.id,t.id)||0),0);
+      return `<tr>
+        <td>
+          <span style="font-weight:500;" class="editable-name" onclick="openEditProject('${p.id}')" title="Click to edit project">${p.name}</span>
+        </td>
+        <td><span class="phase-badge" style="background:${PH_BG[p.phase]};color:${PH_TX[p.phase]}">${p.phase}</span></td>
+        <td class="${PRI_CLS[p.priority]}">${p.priority}</td>
+        ${TEAM.map(t=>{const h=ga(p.id,t.id);return h>0?`<td class="alloc-num">${h}h</td>`:`<td class="alloc-empty">—</td>`;}).join('')}
+        <td class="total-cell">${total>0?total+'h':'—'}</td>
+      </tr>`;
+    }).join('')}</tbody>
+  </table></div>`;
+}
+
+function renderMatrix(){
+  document.getElementById('view-matrix').innerHTML=`
+    <p style="font-size:12px;color:var(--text2);margin-bottom:12px;">Click any cell to edit hours &middot; Click a project name to rename it &middot; Red = over capacity</p>
+    <div class="matrix-scroll"><table class="matrix-table">
+      <thead><tr>
+        <th class="proj-col">Project</th>
+        ${TEAM.map(t=>`<th><div style="display:flex;flex-direction:column;align-items:center;gap:2px;">
+          <div class="avatar" style="width:26px;height:26px;background:${t.bg};color:${t.color};font-size:10px;margin:0 auto;cursor:pointer;" onclick="openEditMember('${t.id}')" title="Edit ${t.name}">${t.init}</div>
+          <div style="cursor:pointer;" onclick="openEditMember('${t.id}')">${t.name.split(' ')[0]}</div>
+          <div style="font-weight:400;color:var(--text3);font-size:10px;">${capW(t.id)}h/wk cap</div>
+        </th>`).join('')}
+        <th style="text-align:center;">Total</th>
+      </tr></thead>
+      <tbody>
+        ${PROJECTS.map(p=>{
+          const total=TEAM.reduce((s,t)=>s+(ga(p.id,t.id)||0),0);
+          return `<tr>
+            <td class="proj-col" title="Click to edit">
+              <span class="phase-badge" style="background:${PH_BG[p.phase]};color:${PH_TX[p.phase]};margin-right:6px;">${p.phase.slice(0,3)}</span>
+              <span class="editable-name" onclick="openEditProject('${p.id}')">${p.name}</span>
+            </td>
+            ${TEAM.map(t=>{
+              const h=ga(p.id,t.id);const cap=capW(t.id);const used=memberWH(t.id);const over=used>cap;
+              return `<td class="alloc-cell ${h>0?(over?'alloc-over':'alloc-filled'):'alloc-empty-cell'}" onclick="openModal('${p.id}','${t.id}')">${h>0?h+'h':'+'}</td>`;
+            }).join('')}
+            <td class="row-total">${total>0?total+'h':'—'}</td>
+          </tr>`;
+        }).join('')}
+        <tr style="background:var(--surface2);font-weight:700;">
+          <td style="font-size:12px;font-weight:700;">Weekly total used</td>
+          ${TEAM.map(t=>{const w=memberWH(t.id);const c=capW(t.id);const p=pct(t.id);return`<td class="alloc-cell" style="font-weight:700;color:${barColor(p)};">${Math.round(w)}/${c}h</td>`;}).join('')}
+          <td class="row-total">${Math.round(TEAM.reduce((s,t)=>s+memberWH(t.id),0))}h</td>
+        </tr>
+      </tbody>
+    </table></div>`;
+}
+
+function switchTab(name,sideItem){
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+  document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
+  document.getElementById('tab-'+name).classList.add('active');
+  document.getElementById('view-'+name).classList.add('active');
+  if(sideItem) sideItem.classList.add('active');
+}
+
+document.addEventListener('keydown',e=>{
+  if(e.key==='Escape'){
+    ['modal-alloc','modal-proj','modal-addproj','modal-member','modal-team'].forEach(id=>closeModal(id));
+  }
+  if(e.key==='Enter'){
+    if(document.getElementById('modal-alloc').classList.contains('open'))saveAlloc();
+    if(document.getElementById('modal-proj').classList.contains('open'))saveProject();
+    if(document.getElementById('modal-addproj').classList.contains('open'))addProject();
+    if(document.getElementById('modal-member').classList.contains('open'))saveMember();
+  }
+});
+
+function render(){
+  document.getElementById('week-label').textContent=(()=>{const d=getWeekDates(weekOffset);return fd(d[0])+' – '+fd(d[4]);})();
+  renderMetrics();renderSidebar();renderTeam();renderProjects();renderMatrix();
+}
+render();
+</script>
+</body>
+</html>
