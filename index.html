@@ -160,7 +160,7 @@ tr:hover .proj-edit-btn{opacity:1;}
 <body>
 
 <header>
-  <div class="logo">sustainahaus<span>GB</span> &mdash; Resource Management</div>
+  <div class="logo">green<span>track</span> &mdash; Resource Management</div>
   <div class="week-nav">
     <button onclick="shiftWeek(-1)">&#8592; Prev week</button>
     <span id="week-label"></span>
@@ -333,13 +333,12 @@ function weekKey(off){
 }
 
 async function loadFromSheets(){
-  document.getElementById('view-team').innerHTML='<div style="padding:40px;text-align:center;color:var(--text2);">Loading data from Google Sheets…</div>';
+  document.getElementById('view-team').innerHTML='<div style="padding:40px;text-align:center;color:var(--text2);">Loading...</div>';
   try{
     const res=await fetch(API_URL+'?action=load');
     const data=await res.json();
-    console.log('Loaded from Sheets:', JSON.stringify(data));
-    TEAM=data.team.map(t=>({...t, id:String(t.id), cap:parseFloat(t.cap)||7}));
-    PROJECTS=data.projects.map(p=>({...p, id:String(p.id)}));
+    TEAM=data.team.map(t=>({...t,id:String(t.id),cap:parseFloat(t.cap)||7}));
+    PROJECTS=data.projects.map(p=>({...p,id:String(p.id)}));
     alloc={};
     const wk=weekKey(weekOffset);
     data.allocations
@@ -348,9 +347,20 @@ async function loadFromSheets(){
     pidCounter=PROJECTS.length+1;
     render();
   }catch(e){
-    document.getElementById('view-team').innerHTML='<div style="padding:40px;text-align:center;color:#A32D2D;">Failed to load data. Check your Apps Script URL and permissions.</div>';
+    document.getElementById('view-team').innerHTML='<div style="padding:40px;text-align:center;color:#A32D2D;">Failed to load. Check Apps Script URL and permissions.</div>';
     console.error(e);
   }
+}
+
+async function loadWeekAllocs(){
+  showStatus('Loading week...');
+  try{
+    const res=await fetch(API_URL+'?action=loadWeek&week='+weekKey(weekOffset));
+    const data=await res.json();
+    alloc={};
+    data.allocations.forEach(a=>sa(String(a.project_id),String(a.member_id),parseFloat(a.hours)||0));
+    render();
+  }catch(e){showStatus('Failed to load week',true);}
 }
 
 async function apiCall(params){
@@ -377,7 +387,7 @@ function getWeekDates(off=0){
   return [0,1,2,3,4].map(i=>{const d=new Date(mon);d.setDate(mon.getDate()+i);return d;});
 }
 function fd(d){return d.toLocaleDateString('en-US',{weekday:'short',month:'short',day:'numeric'});}
-function shiftWeek(dir){weekOffset+=dir;alloc={};loadFromSheets();}
+function shiftWeek(dir){weekOffset+=dir;loadWeekAllocs();}
 
 // ── UTIL HELPERS ──────────────────────────────────────────────────────────
 function memberWH(tid){return PROJECTS.reduce((s,p)=>s+(ga(p.id,tid)||0),0);}
